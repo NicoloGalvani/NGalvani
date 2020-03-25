@@ -1,0 +1,57 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Mar 22 12:39:08 2020
+
+@author: Nicolò
+"""
+
+import numpy as np
+
+#Atom1: 0.0,0.0,0.0; mass 1; 1 electron
+#Atom2: 1.0,0.0,0.0; mass 1; 1 electron
+
+#Energy precision per self consistent loop:
+Precision = 1E-6
+
+#INPUTS
+Basis_per_atom = int(input("Basis per atom\n"))
+N_Atoms = int(input("How many atoms?\n"))
+int_array = np.arange(N_Atoms*3)
+#Masses = np.arange(N_Atoms)
+#Electrons
+R_n = np.array([float(i) for i in int_array])
+R_n = R_n.reshape(N_Atoms,3)
+for i in range(N_Atoms):
+    R_n[i][:] = input(("Atom {0} given as x,y,z\n").format(i)).split(',')
+
+Basis = Basis_per_atom*N_Atoms
+Alpha = np.array(Basis)
+for i in range(8):
+    Alpha[i] = float(input("Alpha values"))
+
+
+
+#with gaussian basis functions
+
+
+
+#8 basis functions, with 8 eigenvalues
+
+
+
+
+
+#Overlap matrix elements
+S = np.array(64)
+S = S.reshape((8,8))
+
+for q in range(8):
+    for p in range(q):
+        S[p,q] = (np.pi/(Alpha[p]-Alpha[q]))
+
+#After each iteratin of the SCF loop it prints the
+#8 Eigenvalues e_k
+
+
+
+#Print the energy file
