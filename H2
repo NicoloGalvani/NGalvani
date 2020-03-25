@@ -16,19 +16,19 @@ Precision = 1E-6
 #INPUTS
 Basis_per_atom = int(input("Basis per atom\n"))
 N_Atoms = int(input("How many atoms?\n"))
+alpha_list = input("Alpha values, divided by comma\n").split(',')
+Alpha = np.array([float(i) for i in alpha_list])
 Basis = Basis_per_atom*N_Atoms
-R_n = np.arange(N_Atoms*3)
-R_n = np.array([float(i) for i in R_n])
+R_n = np.arange(N_Atoms*3, dtype = float)
 R_n = R_n.reshape(N_Atoms,3)
 Z_n = np.arange(N_Atoms)
-Alpha_n = np.array(Basis)
-Alpha_n = np.array([float(i) for i in Alpha_n])
+
 for i in range(N_Atoms):
     positions_list = input(("Atom {0} given as x,y,z\n").format(i)).split(',')
     R_n[i][:] = [float(i) for i in positions_list]
     Z_n[i] = int(input(("Atomic number {0} given as integer\n").format(i)))
-    alpha_list = input(("Atom {0} alpha values, divided by comma\n").format(i)).split(',')
-    Alpha_n[i][:] = [float(i) for i in alpha_list]
+
+
 
 
 
