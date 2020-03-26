@@ -77,6 +77,26 @@ def T_matrix (alpha, nuclei):
     kinetic = coefficient*(6-4*coefficient*t)*S_matrix(alpha,nuclei)
     return kinetic
 
+def V_matrix (alpha):
+    denominator = np.sum.outer(alpha,alpha)
+    V = -2*np.pi/denominator
+    return V
+
+def erf(x):
+    return x
+
+def Q_matrix (alpha, nuclei):
+    s = S_matrix(alpha, nuclei)
+    S_product = np.multiply.outer(s,s)
+    r = R_matrix(alpha, nuclei)
+    R_diff = np.subtract.outer(r,r)
+    R_absolute = np.linalg.norm(R_diff,axis=(2,5))
+    alpha_sum = np.sum.outer(alpha,alpha)
+    numerator = np.multiply.outer(alpha_sum,alpha_sum)
+    denominator = np.sum.outer(alpha_sum,alpha_sum)
+    argument = ((numerator/denominator)**(0.5))*R_absolute
+    Q = S_product/R_absolute*erf(argument)
+    return Q
 
 #Checks
 e1 = np.array([1.0,2.0,0.0])
