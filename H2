@@ -24,7 +24,7 @@ R_n = np.arange(N_Atoms*3, dtype = float)
 R_n = R_n.reshape(N_Atoms,3)
 Z_n = np.arange(N_Atoms)
 for i in range(N_Atoms):
-    positions_list = input(("Atom {0} given as x,y,z\n").format(i)).split(',')
+    positions_list = (float(i),0.0,0.0)#input(("Atom {0} given as x,y,z\n").format(i)).split(',')
     R_n[i][:] = [float(i) for i in positions_list]
     Z_n[i] = int(input(("Atomic number {0} given as integer\n").format(i)))
 
@@ -38,11 +38,31 @@ def basis_function_set (electron, alpha, nuclei):
 
 #Kpq matrix
 def K_matrix (alpha, nuclei):
-    column_alpha = alpha.transpose()
+    column_alpha = alpha.reshape(Basis_per_atom,1)
     numerator = column_alpha*alpha
-    denominator = column_alpha*alpha
+    denominator = column_alpha+alpha
+    coefficient = -numerator/denominator
+    distance = (np.diff(nuclei, axis=0))**2
+    distance_radial = np.sum(distance,axis=1)
+    exponential = np.exp(coefficient*distance_radial)
+    return exponential
 
+def R_matrix (alpha, nuclei):
+    alpha = Alpha
+    row_alpha = alpha.reshape(Basis_per_atom,1,1)
+    column_alpha = alpha.reshape(1,Basis_per_atom,1)
+    first_nucleus = np.array([[nuclei[0,:]]])
+    second_nucleus = np.array([[nuclei[1,:]]])
+    numerator = row_alpha*first_nucleus+column_alpha*second_nucleus
+    denominator = row_alpha+column_alpha
+    tensor = numerator/denominator
+    return tensor
 
+#Checks
+e1 = np.array([1.0,2.0,0.0])
+b = basis_function_set (e1,Alpha,R_n)
+k = K_matrix(Alpha, R_n)
+r = R_matrix(Alpha, R_n)
 
 #Overlap matrix elements
 S = np.array(64)
