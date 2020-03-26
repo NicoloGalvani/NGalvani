@@ -58,19 +58,32 @@ def R_matrix (alpha, nuclei):
     tensor = numerator/denominator
     return tensor
 
+def S_matrix (alpha,nuclei):
+    coefficient = (np.pi/denominator(alpha))**(3/2)
+    k = K_matrix(alpha, nuclei)
+    matrix = coefficient*k
+    return matrix
+
+def T_matrix (alpha, nuclei):
+    coefficient = coefficient_nd(alpha)
+    r = R_matrix(Alpha, R_n)
+    t = np.zeros([Basis_per_atom,Basis_per_atom])
+    for p in range (Basis_per_atom):
+        for q in range (p):
+            difference = r[p,:,:]-r[q,:,:]
+            square = difference**2
+            t[p,q] = square.sum()
+            t[q,p] = t[p,q]
+    kinetic = coefficient*(6-4*coefficient*t)*S_matrix(alpha,nuclei)
+    return kinetic
+
+
 #Checks
 e1 = np.array([1.0,2.0,0.0])
 b = basis_function_set (e1,Alpha,R_n)
 k = K_matrix(Alpha, R_n)
 r = R_matrix(Alpha, R_n)
 
-#Overlap matrix elements
-S = np.array(64)
-S = S.reshape((8,8))
-
-for q in range(8):
-    for p in range(q):
-        S[p,q] = (np.pi/(Alpha[p]-Alpha[q]))
 
 #After each iteratin of the SCF loop it prints the
 #8 Eigenvalues e_k
