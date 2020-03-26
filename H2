@@ -18,28 +18,29 @@ Basis_per_atom = int(input("Basis per atom\n"))
 N_Atoms = int(input("How many atoms?\n"))
 alpha_list = input("Alpha values, divided by comma\n").split(',')
 Alpha = np.array([float(i) for i in alpha_list])
+#13.00773,1.962079,0.444529,0.1219492
 Basis = Basis_per_atom*N_Atoms
 R_n = np.arange(N_Atoms*3, dtype = float)
 R_n = R_n.reshape(N_Atoms,3)
 Z_n = np.arange(N_Atoms)
-
 for i in range(N_Atoms):
     positions_list = input(("Atom {0} given as x,y,z\n").format(i)).split(',')
     R_n[i][:] = [float(i) for i in positions_list]
     Z_n[i] = int(input(("Atomic number {0} given as integer\n").format(i)))
 
+#gaussian basis functions, as a (N_atoms, len(alpha)) array
+def basis_function_set (electron, alpha, nuclei):
+    distance_vector = (nuclei - electron)**2 #Same shape as nuclei
+    distance_radial = np.sum(distance_vector,axis=1) #Sum of the squares
+    distance = distance_radial.transpose() #Column vector (N_Atoms,)
+    exponential = np.exp(-distance*alpha) #Array (N_Atoms,alpha)
+    return exponential
 
-
-
-
-
-#with gaussian basis functions
-
-
-
-#8 basis functions, with 8 eigenvalues
-
-
+#Kpq matrix
+def K_matrix (alpha, nuclei):
+    column_alpha = alpha.transpose()
+    numerator = column_alpha*alpha
+    denominator = column_alpha*alpha
 
 
 
