@@ -50,14 +50,12 @@ def K_matrix (alpha, nuclei):
     exponential = np.exp(-coefficient_al(alpha)*distance_radial)
     return exponential
 
-
-####Problem here
 def R_matrix (alpha, nuclei):
-    first_term = alpha*np.array([[nuclei[0,:]]])
-    second_term = alpha*np.array([[nuclei[1,:]]])
-    numerator = np.sum.outer(first_term,second_term)
-    denominator = np.sum.outer(alpha,alpha)
-    tensor = numerator/denominator
+    first_term = alpha.reshape(4,1,1)*np.array([[nuclei[0,:]]])
+    second_term = alpha.reshape(1,4,1)*np.array([[nuclei[1,:]]])
+    numerator = first_term+second_term
+    denominator = np.add.outer(alpha,alpha)
+    tensor = numerator/denominator.reshape(4,4,1)
     return tensor
 
 def S_matrix (alpha,nuclei):
