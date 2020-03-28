@@ -6,6 +6,7 @@ Created on Sun Mar 22 12:39:08 2020
 """
 
 import numpy as np
+import scipy.integrate as integrate
 
 #Atom1: 0.0,0.0,0.0; mass 1; 1 electron
 #Atom2: 1.0,0.0,0.0; mass 1; 1 electron
@@ -14,9 +15,9 @@ import numpy as np
 Precision = 1E-6
 
 #INPUTS
-Basis_per_atom = int(input("Basis per atom\n"))
-N_Atoms = int(input("How many atoms?\n"))
-alpha_list = input("Alpha values, divided by comma\n").split(',')
+Basis_per_atom = 4#int(input("Basis per atom\n"))
+N_Atoms = 2#int(input("How many atoms?\n"))
+alpha_list = (13.00773,1.962079,0.444529,0.1219492)#input("Alpha values, divided by comma\n").split(',')
 Alpha = np.array([float(i) for i in alpha_list])
 #13.00773,1.962079,0.444529,0.1219492
 Basis = Basis_per_atom*N_Atoms
@@ -26,22 +27,33 @@ Z_n = np.arange(N_Atoms)
 for i in range(N_Atoms):
     positions_list = (float(i),0.0,0.0)#input(("Atom {0} given as x,y,z\n").format(i)).split(',')
     R_n[i][:] = [float(i) for i in positions_list]
-    Z_n[i] = int(input(("Atomic number {0} given as integer\n").format(i)))
+    Z_n[i] = 1#int(input(("Atomic number {0} given as integer\n").format(i)))
+
+#################################C independent matrices
+Overlap = S_matrix(Alpha, R_n)
+Kinetic = T_matrix(Alpha, R_n)
+Potential = V_matrix(Alpha, R_n).sum(axis=0)
+One_e_H = Kinetic+Potential
+Two_e_I = Q_matrix(Alpha,R_n)
+
+
+P = np.zeros((4,4)) #First guess for density matrix
+
+
+######################################SCF Loop
+
+
 
 #gaussian basis functions, as a (N_atoms, len(alpha)) array
 def basis_function_set (electron, alpha, nuclei):
     distance_vector = (nuclei - electron)**2 #Same shape as nuclei
     distance_radial = np.sum(distance_vector,axis=1) #Sum of the squares
-    distance = distance_radial.transpose() #Column vector (N_Atoms,)
-    exponential = np.exp(-distance*alpha) #Array (N_Atoms,alpha)
+    distance = distance_radial.reshape(N_Atoms,1)
+    exponential = np.exp(-distance*alpha) #Array (N_atoms,alpha)
     return exponential
 
-#def denominator_al (alpha):
-#    column_alpha = alpha.reshape(Basis_per_atom,1)
-#    return column_alpha+alpha
-
 def coefficient_al (alpha):
-    coefficient = np.multiply.outer(alpha,alpha)/np.sum.outer(alpha,alpha)
+    coefficient = np.multiply.outer(alpha,alpha)/np.add.outer(alpha,alpha)
     return coefficient
 
 def K_matrix (alpha, nuclei):
@@ -49,6 +61,7 @@ def K_matrix (alpha, nuclei):
     distance_radial = np.sum(distance,axis=1)
     exponential = np.exp(-coefficient_al(alpha)*distance_radial)
     return exponential
+
 
 def R_matrix (alpha, nuclei):
     first_term = alpha.reshape(4,1,1)*np.array([[nuclei[0,:]]])
@@ -59,7 +72,7 @@ def R_matrix (alpha, nuclei):
     return tensor
 
 def S_matrix (alpha,nuclei):
-    coefficient = (np.pi/np.sum.outer(alpha,alpha))**(3/2)
+    coefficient = (np.pi/np.add.outer(alpha,alpha))**(3/2)
     k = K_matrix(alpha, nuclei)
     matrix = coefficient*k
     return matrix
@@ -77,37 +90,86 @@ def T_matrix (alpha, nuclei):
     kinetic = coefficient*(6-4*coefficient*t)*S_matrix(alpha,nuclei)
     return kinetic
 
-def V_matrix (alpha):
-    denominator = np.sum.outer(alpha,alpha)
-    V = -2*np.pi/denominator
-    return V
 
-def erf(x):
-    return x
+def V_matrix (alpha, nuclei):
+    """Restitutes a list(better an array?)
+    of the potential matrices
+    """
+    V = list(range(N_Atoms))
+    s = S_matrix(alpha, nuclei)
+    r = R_matrix(alpha, nuclei)
+    for i in range(N_Atoms):
+        R_diff = r-np.array([nuclei[i,:]])
+        R_absolute = np.linalg.norm(R_diff,axis=(2))
+        alpha_sum = np.add.outer(alpha,alpha)
+        argument = (alpha_sum**0.5)*R_absolute
+        Fraction = np.zeros_like(argument)
+        for p in range(Basis_per_atom):
+            for q in range(p+1):
+                 if R_absolute[p,q]> Precision:
+                     Result = s[p,q]*erf(argument[p,q])/R_absolute[p,q]
+                 else:
+                     Result = 2*np.pi/alpha_sum[p,q]
+                 Fraction[p,q] = Result
+                 Fraction[q,p] = Result
+        V[i] = -Fraction
+    #V = -2*np.pi/denominator
+    return np.array(V)
+
+
+def erf(argument):
+    Integral, error = integrate.quad(lambda x: np.exp(-x**2),0,argument)
+    return 2/(np.pi**0.5)*Integral
+
+#def SerfR(S,condition,argument,otherwise):
+
+
 
 def Q_matrix (alpha, nuclei):
     s = S_matrix(alpha, nuclei)
     S_product = np.multiply.outer(s,s)
     r = R_matrix(alpha, nuclei)
-    R_diff = np.subtract.outer(r,r)
-    R_absolute = np.linalg.norm(R_diff,axis=(2,5))
-    alpha_sum = np.sum.outer(alpha,alpha)
+    R_diff = [0,0,0]
+    for i in range(3):
+        R_diff[i] = np.subtract.outer(r[:,:,i],r[:,:,i])
+    R_absolute = np.linalg.norm(np.array(R_diff),axis=0)
+    alpha_sum = np.add.outer(alpha,alpha)
     numerator = np.multiply.outer(alpha_sum,alpha_sum)
-    denominator = np.sum.outer(alpha_sum,alpha_sum)
-    argument = ((numerator/denominator)**(0.5))*R_absolute
-    Q = S_product/R_absolute*erf(argument)
+    denominator = np.add.outer(alpha_sum,alpha_sum)
+    alpha_argument = (numerator/denominator)**(0.5)
+    argument = alpha_argument*R_absolute
+#    near0 = alpha_argument*2/(np.pi**0.5)
+#    Q = SerfR(S_product,R_absolute,argument,near0)
+    Fraction = np.zeros_like(argument)
+    for p in range(Basis_per_atom):
+        for q in range(p+1):
+            for r in range(p):
+                for s in  range (r+1):
+                    if R_absolute[p,q,r,s]> Precision:
+                        Result = erf(argument[p,q,r,s])/R_absolute[p,q,r,s]
+                    else:
+                        Result = alpha_argument[p,q,r,s]*2/(np.pi**0.5)
+                    Fraction[p,q,r,s] = Result
+                    Fraction[q,p,r,s] = Result
+                    Fraction[p,q,s,r] = Result
+                    Fraction[q,p,s,r] = Result
+                    Fraction[r,s,p,q] = Result
+                    Fraction[s,r,q,p] = Result
+                    Fraction[r,s,q,p] = Result
+                    Fraction[s,r,p,q] = Result
+            r = p
+            for s in range(q+1):
+                if R_absolute[p,q,r,s]>0:
+                    Result = erf(argument[p,q,r,s])/R_absolute[p,q,r,s]
+                else:
+                    Result = alpha_argument[p,q,r,s]*2/(np.pi**0.5)
+                Fraction[p,q,r,s] = Result
+                Fraction[q,p,r,s] = Result
+                Fraction[p,q,s,r] = Result
+                Fraction[q,p,s,r] = Result
+                Fraction[r,s,p,q] = Result
+                Fraction[s,r,q,p] = Result
+                Fraction[r,s,q,p] = Result
+                Fraction[s,r,p,q] = Result
+    Q = S_product*Fraction
     return Q
-
-#Checks
-e1 = np.array([1.0,2.0,0.0])
-b = basis_function_set (e1,Alpha,R_n)
-k = K_matrix(Alpha, R_n)
-r = R_matrix(Alpha, R_n)
-
-
-#After each iteratin of the SCF loop it prints the
-#8 Eigenvalues e_k
-
-
-
-#Print the energy file
